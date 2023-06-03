@@ -1,0 +1,10 @@
+Data/
+Models/
+__pycache__/
+Figures/
+build/
+
+*.vscode
+*.egg-info
+
+! source/*

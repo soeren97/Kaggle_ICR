@@ -21,3 +21,14 @@ repos:
     hooks:
       - id: autopep8
         args: [--max-line-length, '88', --in-place, --ignore, E203]
+
+  - repo: https://github.com/PyCQA/pydocstyle
+    rev: 6.3.0
+    hooks:
+      - id: pydocstyle
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.3.0
+    hooks:
+      - id: mypy
+        language_version: python3.11

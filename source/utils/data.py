@@ -10,8 +10,6 @@ def split_data():
     """Split and save full dataset into training and validation set."""
     data = pd.read_csv("Data/train.csv")
 
-    data.drop(columns="Id", inplace=True)
-
     data.replace(["A", "B"], [0, 1], inplace=True)
 
     train_set = data.sample(frac=0.8, random_state=42)
@@ -47,12 +45,14 @@ def evaluate_loss(preds: Dataset, eval_data: Dataset) -> Tuple[str, float, bool]
 
     eval_result = (loss_0 - loss_1) / 2
 
-    is_high_better = False
+    is_high_better = True
 
     return eval_name, eval_result, is_high_better
 
 
-def augment_categorical_column(column: pd.Series, p: float) -> pd.Series:
+def augment_categorical_column(
+    column: pd.Series, p: Tuple[float, float], targets: pd.Series
+) -> pd.Series:
     """Augment categorical column, maintaining the proportion of categories of classes.
 
     Args:
@@ -63,20 +63,20 @@ def augment_categorical_column(column: pd.Series, p: float) -> pd.Series:
         pd.Series: Augmented categorical column.
     """
     augmented_column = column.copy()
-    mask_1 = column == 1
-    mask_0 = ~mask_1
-    n_augmented_1 = int(p * np.sum(mask_1))
-    n_augmented_0 = int(p * np.sum(mask_0))
-    augmented_column.loc[mask_1] = np.random.choice(
-        [0, 1], size=n_augmented_1, p=[1 - p, p]
+
+    index_0 = targets == 0
+    index_1 = targets == 1
+
+    augmented_column.iloc[index_0] = np.random.choice(
+        [0, 1], size=sum(index_0), p=[1 - p[0], p[0]]
     )
-    augmented_column.loc[mask_0] = np.random.choice(
-        [0, 1], size=n_augmented_0, p=[1 - p, p]
+    augmented_column.iloc[index_1] = np.random.choice(
+        [0, 1], size=sum(index_1), p=[1 - p[1], p[1]]
     )
-    return augmented_column
+    return pd.Series(augmented_column)
 
 
-def augment_numerical_column(column: pd.Series, std: float) -> pd.Series:
+def augment_numerical_columns(columns: pd.Series) -> pd.Series:
     """Augment a numerical column by adding random noise.
 
     Args:
@@ -86,13 +86,19 @@ def augment_numerical_column(column: pd.Series, std: float) -> pd.Series:
     Returns:
         pd.Series: Augmented numerical column.
     """
-    noise = np.random.normal(0, std, size=len(column))
-    augmented_column = column + noise
-    return augmented_column
+    std = columns.std() / 10
+    noise = np.random.normal(-std / 2, std / 2, size=columns.shape)
+    augmented_values = columns + noise
+    augmented_values = np.maximum(augmented_values, 0)
+
+    return augmented_values
 
 
-def augment_data(X: pd.DataFrame, y: pd.Series) -> Tuple[pd.DataFrame, pd.Series]:
-    """Augment data by applying data augmentation to categorical and numerical columns.
+def augment_data(
+    X: pd.DataFrame,
+    y: pd.Series,
+) -> Tuple[pd.DataFrame, pd.Series]:
+    """Augment data by applying augmentation to categorical and numerical columns.
 
     Args:
         X (pd.DataFrame): Input features.
@@ -101,19 +107,20 @@ def augment_data(X: pd.DataFrame, y: pd.Series) -> Tuple[pd.DataFrame, pd.Series
     Returns:
         Tuple[pd.DataFrame, pd.Series]: Augmented features and target variable.
     """
-    # Probability of selecting a value of 1 during categorical column augmentation
-    # for each class.
     p_categorical = (256 / 407, 66 / 87)
 
-    augmented_X = pd.concat(
-        [
-            augment_categorical_column(X["EJ"], p_categorical[y.iloc[i]])
-            for i in range(len(X))
-        ],
-        axis=1,
-    )
-    augmented_X.columns = X.columns
-    augmented_y = pd.concat([y] * len(X), ignore_index=True)
+    augmented_X = pd.DataFrame()
+
+    # Augment categorical column
+    augmented_X["EJ"] = augment_categorical_column(X["EJ"], p_categorical, y)
+
+    # Augment numerical columns
+    numerical_cols = X.columns.drop("EJ")
+    augmented_X[numerical_cols] = augment_numerical_columns(X[numerical_cols])
+
+    # Copy target variable
+    augmented_y = y.copy()
+
     return augmented_X, augmented_y
 
 

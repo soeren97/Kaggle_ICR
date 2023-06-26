@@ -3,7 +3,8 @@ Models/
 __pycache__/
 Figures/
 build/
-
+.mypy_cache/
+wandb/
 *.vscode
 *.egg-info
 

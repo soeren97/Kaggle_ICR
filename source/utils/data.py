@@ -37,13 +37,25 @@ def evaluate_loss(preds: Dataset, eval_data: Dataset) -> Tuple[str, float, bool]
     class_0 = eval_data[eval_data == 0]
     class_1 = eval_data[eval_data == 1]
 
+    # Number of observations in each class
     n_0 = len(class_0)
     n_1 = len(class_1)
 
-    loss_0 = (-1 / n_0) * sum(eval_data == 0 * np.log(preds[0]))
-    loss_1 = (-1 / n_1) * sum(eval_data == 1 * np.log(preds[1]))
+    # Weights of each class
+    w_0 = 1 / n_0
+    w_1 = 1 / n_1
 
-    eval_result = (loss_0 - loss_1) / 2
+    # Limit predicted probability
+    preds = np.clip(preds, 1e-15, 1 - 1e-15)
+
+    p_0 = 1 - preds
+
+    p_1 = preds
+
+    loss_0 = -w_0 * np.sum((1 - eval_data) * np.log(p_0))
+    loss_1 = -w_1 * np.sum(eval_data * np.log(p_1))
+
+    eval_result = (loss_0 + loss_1) / (w_0 + w_1)
 
     is_high_better = True
 

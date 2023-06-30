@@ -3,22 +3,15 @@ import os
 import random
 import warnings
 from multiprocessing import Process
-from os.path import isfile
 from typing import Dict
 
 import lightgbm
 import numpy as np
-import pandas as pd
 import wandb
 from wandb.lightgbm import log_summary, wandb_callback
 
-from source.constants import (
-    PROJECT_NAME,
-    TRAIN_DATASET_LOCATION,
-    VALIDATION_DATASET_LOCATION,
-    WANDB_DIR,
-)
-from source.utils.data import augment_data, evaluate_loss, split_data
+from source.constants import PROJECT_NAME, WANDB_DIR
+from source.utils.data import evaluate_loss, load_data
 
 np.random.seed(42)
 random.seed(42)
@@ -35,28 +28,17 @@ warnings.filterwarnings(
 
 def train():
     """Train lightgbm model."""
-    if not (isfile(TRAIN_DATASET_LOCATION) and isfile(VALIDATION_DATASET_LOCATION)):
-        split_data()
+    X_train, y_train, X_valid, y_valid = load_data()
 
-    train_df = pd.read_csv(TRAIN_DATASET_LOCATION, index_col=0).drop(columns="Id")
-    valid_df = pd.read_csv(VALIDATION_DATASET_LOCATION, index_col=0).drop(columns="Id")
-
-    feature_names = train_df.columns.drop("Class").to_list()
-
-    # Augment train_df
-    X_train, y_train = augment_data(train_df.iloc[:, :-1], train_df.iloc[:, -1])
-    X_train = X_train[train_df.columns.drop("Class")]
-
-    X_train = pd.concat([train_df.iloc[:, :-1], X_train]).reset_index(drop=True)
-    y_train = pd.concat([train_df.iloc[:, -1], y_train]).reset_index(drop=True)
+    feature_names = X_train.columns.tolist()
 
     # Convert to lightgbm dataset
     train_dataset = lightgbm.Dataset(
         data=X_train, label=y_train, feature_name=feature_names, params={"verbose": -1}
     )
     valid_dataset = lightgbm.Dataset(
-        data=valid_df.iloc[:, 1:-1],
-        label=valid_df.Class,
+        data=X_valid,
+        label=y_valid,
         feature_name=feature_names,
         params={"verbose": -1},
     )

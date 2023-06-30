@@ -1,9 +1,38 @@
 """Functions used to process data."""
+from os.path import isfile
 from typing import Tuple
 
 import numpy as np
 import pandas as pd
 from lightgbm import Dataset
+
+from source.constants import TRAIN_DATASET_LOCATION, VALIDATION_DATASET_LOCATION
+
+
+def load_data() -> Tuple[pd.Series, pd.Series, pd.Series, pd.Series]:
+    """Load the data from csv file.
+
+    Returns:
+        Tuple[pd.Series, pd.Series, pd.Series, pd.Series]:
+            Train and validation feature and targets.
+    """
+    if not (isfile(TRAIN_DATASET_LOCATION) and isfile(VALIDATION_DATASET_LOCATION)):
+        split_data()
+
+    train_df = pd.read_csv(TRAIN_DATASET_LOCATION, index_col=0).drop(columns="Id")
+    valid_df = pd.read_csv(VALIDATION_DATASET_LOCATION, index_col=0).drop(columns="Id")
+
+    X_valid = valid_df.iloc[:, 1:-1]
+    y_valid = valid_df.Class
+
+    # Augment train_df
+    X_train, y_train = augment_data(train_df.iloc[:, :-1], train_df.iloc[:, -1])
+    X_train = X_train[train_df.columns.drop("Class")]
+
+    X_train = pd.concat([train_df.iloc[:, :-1], X_train]).reset_index(drop=True)
+    y_train = pd.concat([train_df.iloc[:, -1], y_train]).reset_index(drop=True)
+
+    return X_train, y_train, X_valid, y_valid
 
 
 def split_data():

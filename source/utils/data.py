@@ -22,13 +22,8 @@ def split_data():
     validation_set.to_csv("Data/validation_set.csv")
 
 
-def load_data(
-    add_noise: bool = False,
-) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
+def load_data() -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
     """Load the data from csv file.
-
-    Args:
-        add_noise (bool, optional): Whether or not to add noice. Defaults to False.
 
     Returns:
         Tuple[pd.Series, pd.Series, pd.Series, pd.Series]:
@@ -45,15 +40,6 @@ def load_data(
 
     X_train = train_df.iloc[:, 1:-1]
     y_train = train_df.Class
-
-    if add_noise:
-        # Augment train_df
-        X_train, y_train = augment_data(X_train, y_train)
-
-        X_train = pd.concat([train_df.iloc[:, :-1], X_train]).reset_index(drop=True)
-        y_train = pd.concat([train_df.iloc[:, -1], y_train]).reset_index(drop=True)
-    else:
-        pass
 
     return X_train, y_train, X_valid, y_valid
 
@@ -129,7 +115,40 @@ def augment_data(
     # Copy target variable
     augmented_y = y.copy()
 
-    return augmented_X, augmented_y
+    X_train = pd.concat([X, augmented_X]).reset_index(drop=True)
+    y_train = pd.concat([y, augmented_y]).reset_index(drop=True)
+
+    return X_train, y_train
+
+
+def remove_nan(
+    X: pd.DataFrame, y: pd.Series, method: str = "drop"
+) -> Tuple[pd.DataFrame, pd.Series]:
+    """Remove nan values from dataset.
+
+    Args:
+        X (pd.DataFrame): Features.
+        y (pd.Series): Targets.
+        method (str, optional): Method of removal. Defaults to "drop".
+
+    Returns:
+        Tuple[pd.DataFrame, pd.Series]: Cleaned dataset.
+    """
+    # index = np.where(X.isna())
+
+    if method == "drop":
+        X["Class"] = y
+        X.dropna(inplace=True)
+
+        y = X["Class"]
+        del X["Class"]
+
+    if method == "average":
+        # TODO: impliment other methods.
+        # averages = X.mean()
+        # X.iloc[]
+        pass
+    return X, y
 
 
 if __name__ == "__main__":

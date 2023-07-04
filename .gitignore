@@ -1,11 +1,16 @@
-Data/
-Models/
+# Folders
+Data/*
+Models/*
+Figures/*
+
+# Cache
 __pycache__/
-Figures/
-build/
 .mypy_cache/
-wandb/
+
+# Workspace items
+build/
 *.vscode
 *.egg-info
 
+# Exceptions
 ! source/*

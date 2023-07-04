@@ -4,35 +4,8 @@ from typing import Tuple
 
 import numpy as np
 import pandas as pd
-from lightgbm import Dataset
 
 from source.constants import TRAIN_DATASET_LOCATION, VALIDATION_DATASET_LOCATION
-
-
-def load_data() -> Tuple[pd.Series, pd.Series, pd.Series, pd.Series]:
-    """Load the data from csv file.
-
-    Returns:
-        Tuple[pd.Series, pd.Series, pd.Series, pd.Series]:
-            Train and validation feature and targets.
-    """
-    if not (isfile(TRAIN_DATASET_LOCATION) and isfile(VALIDATION_DATASET_LOCATION)):
-        split_data()
-
-    train_df = pd.read_csv(TRAIN_DATASET_LOCATION, index_col=0).drop(columns="Id")
-    valid_df = pd.read_csv(VALIDATION_DATASET_LOCATION, index_col=0).drop(columns="Id")
-
-    X_valid = valid_df.iloc[:, 1:-1]
-    y_valid = valid_df.Class
-
-    # Augment train_df
-    X_train, y_train = augment_data(train_df.iloc[:, :-1], train_df.iloc[:, -1])
-    X_train = X_train[train_df.columns.drop("Class")]
-
-    X_train = pd.concat([train_df.iloc[:, :-1], X_train]).reset_index(drop=True)
-    y_train = pd.concat([train_df.iloc[:, -1], y_train]).reset_index(drop=True)
-
-    return X_train, y_train, X_valid, y_valid
 
 
 def split_data():
@@ -49,46 +22,26 @@ def split_data():
     validation_set.to_csv("Data/validation_set.csv")
 
 
-def evaluate_loss(preds: Dataset, eval_data: Dataset) -> Tuple[str, float, bool]:
-    """Evaluate balanced log loss.
-
-    Args:
-        preds (Dataset): Predictions.
-        eval_data (Dataset): Targets.
+def load_data() -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
+    """Load the data from csv file.
 
     Returns:
-        Tuple[str, float, bool]: Name of loss fn, loss value, minimize or maximize.
+        Tuple[pd.Series, pd.Series, pd.Series, pd.Series]:
+            Train and validation feature and targets.
     """
-    eval_name = "balanced logarithmic loss"
+    if not (isfile(TRAIN_DATASET_LOCATION) and isfile(VALIDATION_DATASET_LOCATION)):
+        split_data()
 
-    eval_data = eval_data.get_label()
+    train_df = pd.read_csv(TRAIN_DATASET_LOCATION, index_col=0).drop(columns="Id")
+    valid_df = pd.read_csv(VALIDATION_DATASET_LOCATION, index_col=0).drop(columns="Id")
 
-    class_0 = eval_data[eval_data == 0]
-    class_1 = eval_data[eval_data == 1]
+    X_valid = valid_df.iloc[:, 1:-1]
+    y_valid = valid_df.Class
 
-    # Number of observations in each class
-    n_0 = len(class_0)
-    n_1 = len(class_1)
+    X_train = train_df.iloc[:, 1:-1]
+    y_train = train_df.Class
 
-    # Weights of each class
-    w_0 = 1 / n_0
-    w_1 = 1 / n_1
-
-    # Limit predicted probability
-    preds = np.clip(preds, 1e-15, 1 - 1e-15)
-
-    p_0 = 1 - preds
-
-    p_1 = preds
-
-    loss_0 = -w_0 * np.sum((1 - eval_data) * np.log(p_0))
-    loss_1 = -w_1 * np.sum(eval_data * np.log(p_1))
-
-    eval_result = (loss_0 + loss_1) / (w_0 + w_1)
-
-    is_high_better = True
-
-    return eval_name, eval_result, is_high_better
+    return X_train, y_train, X_valid, y_valid
 
 
 def augment_categorical_column(
@@ -162,7 +115,40 @@ def augment_data(
     # Copy target variable
     augmented_y = y.copy()
 
-    return augmented_X, augmented_y
+    X_train = pd.concat([X, augmented_X]).reset_index(drop=True)
+    y_train = pd.concat([y, augmented_y]).reset_index(drop=True)
+
+    return X_train, y_train
+
+
+def remove_nan(
+    X: pd.DataFrame, y: pd.Series, method: str = "drop"
+) -> Tuple[pd.DataFrame, pd.Series]:
+    """Remove nan values from dataset.
+
+    Args:
+        X (pd.DataFrame): Features.
+        y (pd.Series): Targets.
+        method (str, optional): Method of removal. Defaults to "drop".
+
+    Returns:
+        Tuple[pd.DataFrame, pd.Series]: Cleaned dataset.
+    """
+    # index = np.where(X.isna())
+
+    if method == "drop":
+        X["Class"] = y
+        X.dropna(inplace=True)
+
+        y = X["Class"]
+        del X["Class"]
+
+    if method == "average":
+        # TODO: impliment other methods.
+        # averages = X.mean()
+        # X.iloc[]
+        pass
+    return X, y
 
 
 if __name__ == "__main__":

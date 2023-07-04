@@ -1,7 +1,7 @@
 """Constants used throughout the repo."""
 import os
 
-# Repo
+# Repocitory
 CWD = os.getcwd()
 
 # Data
@@ -12,3 +12,6 @@ VALIDATION_DATASET_LOCATION = DATA_FOLDER + "validation_set.csv"
 # wandb
 WANDB_DIR = DATA_FOLDER + "wandb/"
 PROJECT_NAME = "Kaggle ICR"
+
+# Plotting
+FIGURE_LOCATION = CWD + "/Figures/"

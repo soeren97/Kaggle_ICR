@@ -1,11 +1,30 @@
-"""Functions used to process data."""
+"""Functions used to process and load data."""
 from os.path import isfile
-from typing import Tuple
+from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
+import yaml  # type: ignore
+from sklearn.preprocessing import StandardScaler
 
 from source.constants import TRAIN_DATASET_LOCATION, VALIDATION_DATASET_LOCATION
+
+
+def load_config(path: str) -> Dict:
+    """Load in configuration file for model.
+
+    Used to easily change variables such as learning rate,
+    loss function and such.
+
+    Args:
+        path (str): path to config file.
+
+    Returns:
+        Dict: Model config.
+    """
+    with open(path, "r") as file:
+        config = yaml.safe_load(file)
+    return config
 
 
 def split_data():
@@ -149,6 +168,24 @@ def remove_nan(
         # X.iloc[]
         pass
     return X, y
+
+
+def scale_data(
+    X_train: pd.DataFrame, X_valid: pd.DataFrame
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Scale features.
+
+    Args:
+        X_train (pd.DataFrame): Training features.
+        X_valid (pd.DataFrame): Validation Features
+
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame]: Scaled train and validation features.
+    """
+    scaler = StandardScaler()
+    scaled_train = scaler.fit_transform(X_train)
+    scaled_valid = scaler.transform(X_valid)
+    return scaled_train, scaled_valid
 
 
 if __name__ == "__main__":

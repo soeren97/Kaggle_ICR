@@ -1,0 +1,43 @@
+INIT_CONFIG: {
+        device: "gpu",
+        boosting_type: "gbdt",
+        num_leaves: 31,
+        learning_rate: 0.1,
+        max_depth: -1,
+        feature_fraction: 0.9,
+        force_col_wise: True
+    }
+
+HYPERPARAMETER_SPACE: {
+        device: {
+          value: "gpu"},
+        boost: {
+          value: "dart"},
+        num_leaves: {
+          distribution: "int_uniform", 
+          max: 50, 
+          min: 10},
+        learning_rate: {
+          max: 0.5, 
+          min: 0.001},
+        max_depth: {"value": -1},
+        feature_fraction: {
+          distribution: "uniform",
+          max: 0.8, 
+          min: 0.3},
+        verbose: {"value": -1},
+        force_col_wise: {"value": True}
+    }
+
+SWEEP_CONFIG: {
+  method: "bayes",
+  name: "sweep",
+  metric: {
+    name: "val_loss", 
+    goal: "minimize"},
+  parameters: ,
+  early_terminate: {
+    type: "hyperband", 
+    min_iter: 10},
+  run_cap: 300,
+}

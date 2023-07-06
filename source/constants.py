@@ -15,3 +15,7 @@ PROJECT_NAME = "Kaggle ICR"
 
 # Plotting
 FIGURE_LOCATION = CWD + "/Figures/"
+
+# CONFIG
+PATH_TO_CONFIG_FOLDER = CWD + "/configs/"
+WANDB_CONFIG = PATH_TO_CONFIG_FOLDER + "wandb.yaml"
